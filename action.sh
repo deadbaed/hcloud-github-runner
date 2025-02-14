@@ -129,9 +129,9 @@ fi
 # If INPUT_LOCATION is set, use its value; otherwise, use "nbg1".
 MY_LOCATION=${INPUT_LOCATION:-"nbg1"}
 
-# Set the name of the instance (default: gh-runner-$RANDOM)
-# If INPUT_NAME is set, use its value; otherwise, generate a random name using "gh-runner-$RANDOM".
-MY_NAME=${INPUT_NAME:-"gh-runner-$RANDOM"}
+# Set the name of the instance (default: forgejo-runner-$RANDOM)
+# If INPUT_NAME is set, use its value; otherwise, generate a random name using "forgejo-runner-$RANDOM".
+MY_NAME=${INPUT_NAME:-"forgejo-runner-$RANDOM"}
 # Check allowed characters
 if [[ ! "$MY_NAME" =~ ^[a-zA-Z0-9_-]{1,64}$ ]]; then
 	exit_with_failure "'$MY_NAME' is not a valid hostname or label!"
