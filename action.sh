@@ -243,7 +243,7 @@ else
 	MY_PRE_RUNNER_SCRIPT_BASE64=$(echo "$MY_PRE_RUNNER_SCRIPT" | base64 --wrap=0)
 fi
 
-# Split protocol from instance url 
+# Split protocol from instance url, Hetzner does not allow "/" in label values
 FORGEJO_INSTANCE="${GITHUB_SERVER_URL#*://}"
 
 # Replace "/" by "_" in repository name, Hetzner does not allow "/" in label values
