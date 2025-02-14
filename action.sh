@@ -66,11 +66,11 @@ if [[ -z "$MY_HETZNER_TOKEN" ]]; then
 	exit_with_failure "Hetzner Cloud API token is not set."
 fi
 
-# Set the GitHub Personal Access Token (PAT).
-# Retrieves the value from the INPUT_GITHUB_TOKEN environment variable.
-MY_GITHUB_TOKEN=${INPUT_GITHUB_TOKEN}
-if [[ -z "$MY_GITHUB_TOKEN" ]]; then
-	exit_with_failure "GitHub Personal Access Token (PAT) token is required!"
+# Set the Forgejo Personal Access Token (PAT).
+# Retrieves the value from the INPUT_FORGEJO_TOKEN environment variable.
+MY_FORGEJO_TOKEN=${INPUT_FORGEJO_TOKEN}
+if [[ -z "$MY_FORGEJO_TOKEN" ]]; then
+	exit_with_failure "Forgejo Personal Access Token (PAT) token is required!"
 fi
 
 # Set the GitHub repository name.
@@ -239,7 +239,7 @@ if [[ "$MY_MODE" == "delete" ]]; then
 	# 	--fail-with-body \
 	# 	-o "github-runners.json" \
 	# 	-H "Accept: application/vnd.github+json" \
-	# 	-H "Authorization: Bearer ${MY_GITHUB_TOKEN}" \
+	# 	-H "Authorization: Bearer ${MY_FORGEJO_TOKEN}" \
 	# 	-H "X-GitHub-Api-Version: 2022-11-28" \
 	# 	"https://api.github.com/repos/${MY_GITHUB_REPOSITORY}/actions/runners" \
 	# 	|| exit_with_failure "Failed to list GitHub Actions runners from repository!"
@@ -258,7 +258,7 @@ if [[ "$MY_MODE" == "delete" ]]; then
 	# 	-X DELETE \
 	# 	--fail-with-body \
 	# 	-H "Accept: application/vnd.github+json" \
-	# 	-H "Authorization: Bearer ${MY_GITHUB_TOKEN}" \
+	# 	-H "Authorization: Bearer ${MY_FORGEJO_TOKEN}" \
 	# 	-H "X-GitHub-Api-Version: 2022-11-28" \
 	# 	"https://api.github.com/repos/${MY_GITHUB_REPOSITORY}/actions/runners/${MY_GITHUB_RUNNER_ID}" \
 	# 	|| exit_with_failure "Failed to delete GitHub Actions Runner from repository! Please delete manually: https://github.com/${MY_GITHUB_REPOSITORY}/settings/actions/runners"
@@ -282,7 +282,7 @@ curl -L \
 	-X "GET" \
 	--fail-with-body \
 	-o "registration-token.json" \
-	-H "Authorization: Bearer ${MY_GITHUB_TOKEN}" \
+	-H "Authorization: ${MY_FORGEJO_TOKEN}" \
 	"${GITHUB_SERVER_URL}/api/v1/repos/${MY_GITHUB_REPOSITORY}/runners/registration-token" \
 	|| exit_with_failure "Failed to retrieve Forgejo Actions Runner registration token!"
 
@@ -434,7 +434,7 @@ fi
 # 	curl -L -s \
 # 		-o "github-runners.json" \
 # 		-H "Accept: application/vnd.github+json" \
-# 		-H "Authorization: Bearer ${MY_GITHUB_TOKEN}" \
+# 		-H "Authorization: Bearer ${MY_FORGEJO_TOKEN}" \
 # 		-H "X-GitHub-Api-Version: 2022-11-28" \
 # 		"https://api.github.com/repos/${MY_GITHUB_REPOSITORY}/actions/runners" \
 # 		|| exit_with_failure "Failed to list GitHub Actions runners from repository!"
