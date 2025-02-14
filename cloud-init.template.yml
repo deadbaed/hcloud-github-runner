@@ -22,8 +22,8 @@ runcmd:
 
     [Service]
     Type=simple
-    User=runner
-    Group=runner
+    User=root
+    Group=root
     WorkingDirectory=/root
     ExecStart=/usr/local/bin/forgejo-runner daemon
     Restart=on-failure

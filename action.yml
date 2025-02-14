@@ -63,14 +63,13 @@ inputs:
     default: 'null'
   runner_dir:
     description: >-
-      GitHub Actions Runner installation directory (created automatically; no trailing slash).
+      Forgejo Actions Runner installation directory (created automatically; no trailing slash).
     required: false
-    default: '/actions-runner'
   runner_version:
     description: >-
       GitHub Actions Runner version (omit 'v'; e.g., '2.1.0').
       'latest' will install the latest version.
-      'skip' will skip the installation. A working installation is expected in the 'runner_dir'.
+      'skip' will skip the installation. A working installation is expected.
     required: false
     default: 'latest'
   runner_wait:
