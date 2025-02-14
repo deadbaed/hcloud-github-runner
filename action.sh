@@ -308,16 +308,19 @@ else
 	MY_PRE_RUNNER_SCRIPT_BASE64=$(echo "$MY_PRE_RUNNER_SCRIPT" | base64 --wrap=0)
 fi
 # Split repository into owner and repository name
-MY_GITHUB_OWNER="${MY_GITHUB_REPOSITORY%/*}"   # Extract the part before the last /
-MY_GITHUB_REPO_NAME="${MY_GITHUB_REPOSITORY##*/}"   # Extract the part after the last /
+# MY_GITHUB_OWNER="${MY_GITHUB_REPOSITORY%/*}"   # Extract the part before the last /
+# MY_GITHUB_REPO_NAME="${MY_GITHUB_REPOSITORY##*/}"   # Extract the part after the last /
 
 # Split protocol from instance url 
 FORGEJO_INSTANCE="${GITHUB_SERVER_URL#*://}"
 
+# Replace "/" by "_", Hetzner does not allow "/" in label values
+FORGEJO_REPOSITORY="${MY_GITHUB_REPOSITORY//\//_}"
+
 # Export environment variables for use in the cloud-init template
-export MY_GITHUB_OWNER
-export MY_GITHUB_REPO_NAME
-export MY_GITHUB_REPOSITORY
+# export MY_GITHUB_OWNER
+# export MY_GITHUB_REPO_NAME
+# export MY_GITHUB_REPOSITORY
 # export MY_GITHUB_RUNNER_REGISTRATION_TOKEN
 # MY_FORGEJO_RUNNER_REGISTRATION_TOKEN is already exported
 export MY_INSTALL_SH_BASE64
@@ -339,7 +342,7 @@ jq -n \
 	--arg     location        "$MY_LOCATION" \
 	--arg     runner_version  "$MY_RUNNER_VERSION" \
 	--arg     forgejo_instance "$FORGEJO_INSTANCE" \
-	--arg     forgejo_repository "$MY_GITHUB_REPOSITORY" \
+	--arg     forgejo_repository "$FORGEJO_REPOSITORY" \
 	--arg     image           "$MY_IMAGE" \
 	--arg     server_type     "$MY_SERVER_TYPE" \
 	--arg     name            "$MY_NAME" \
