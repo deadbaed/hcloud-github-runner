@@ -221,7 +221,7 @@ if [[ "$MY_MODE" == "delete" ]]; then
 	echo "Hetzner Cloud Server deleted successfully."
 
 	echo "The Hetzner Cloud Server has been deleted successfully."
-	echo "Forgejo Actions Runner was not deleted, since it is not possible to do it via the api, you will need to delete it manually."
+	echo "Forgejo Actions Runner was not deleted. Please delete manually: ${GITHUB_SERVER_URL}/${MY_GITHUB_REPOSITORY}/settings/actions/runners/"
 	# Add GitHub Action job summary 
 	# https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions#adding-a-job-summary
 	echo "The Hetzner Cloud Server has been deleted successfully 🗑️" >> "$GITHUB_STEP_SUMMARY"
