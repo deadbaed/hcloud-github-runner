@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Create a on-demand self-hosted GitHub Actions Runner in Hetzner Cloud
+# Create a Forgejo Actions Runner in Hetzner Cloud
 # https://docs.hetzner.cloud/#servers-create-a-server
 
 # Function to exit the script with a failure message
@@ -231,37 +231,39 @@ if [[ "$MY_MODE" == "delete" ]]; then
 		|| exit_with_failure "Error deleting server!"
 	echo "Hetzner Cloud Server deleted successfully."
 
+	# FIXME: forgejo cannot list runners through api
 	# List self-hosted runners for repository
 	# https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2022-11-28#list-self-hosted-runners-for-a-repository
-	echo "List self-hosted runners..."
-	curl -L \
-		--fail-with-body \
-		-o "github-runners.json" \
-		-H "Accept: application/vnd.github+json" \
-		-H "Authorization: Bearer ${MY_GITHUB_TOKEN}" \
-		-H "X-GitHub-Api-Version: 2022-11-28" \
-		"https://api.github.com/repos/${MY_GITHUB_REPOSITORY}/actions/runners" \
-		|| exit_with_failure "Failed to list GitHub Actions runners from repository!"
+	# echo "List self-hosted runners..."
+	# curl -L \
+	# 	--fail-with-body \
+	# 	-o "github-runners.json" \
+	# 	-H "Accept: application/vnd.github+json" \
+	# 	-H "Authorization: Bearer ${MY_GITHUB_TOKEN}" \
+	# 	-H "X-GitHub-Api-Version: 2022-11-28" \
+	# 	"https://api.github.com/repos/${MY_GITHUB_REPOSITORY}/actions/runners" \
+	# 	|| exit_with_failure "Failed to list GitHub Actions runners from repository!"
 
-	MY_GITHUB_RUNNER_ID=$(jq -er ".runners[] | select(.name == \"$MY_NAME\") | .id" < "github-runners.json")
-	# Check if MY_GITHUB_RUNNER_ID is an integer
-	if [[ ! "$MY_GITHUB_RUNNER_ID" =~ ^[0-9]+$ ]]; then
-		exit_with_failure "Failed to get ID of the GitHub Actions Runner!"
-	fi
+	# MY_GITHUB_RUNNER_ID=$(jq -er ".runners[] | select(.name == \"$MY_NAME\") | .id" < "github-runners.json")
+	# # Check if MY_GITHUB_RUNNER_ID is an integer
+	# if [[ ! "$MY_GITHUB_RUNNER_ID" =~ ^[0-9]+$ ]]; then
+	# 	exit_with_failure "Failed to get ID of the GitHub Actions Runner!"
+	# fi
 
+	# FIXME: forgejo cannot delete runners through api
 	# Delete a self-hosted runner from repository
 	# https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2022-11-28#delete-a-self-hosted-runner-from-a-repository
-	echo "Delete GitHub Actions Runner..."
-	curl -L \
-		-X DELETE \
-		--fail-with-body \
-		-H "Accept: application/vnd.github+json" \
-		-H "Authorization: Bearer ${MY_GITHUB_TOKEN}" \
-		-H "X-GitHub-Api-Version: 2022-11-28" \
-		"https://api.github.com/repos/${MY_GITHUB_REPOSITORY}/actions/runners/${MY_GITHUB_RUNNER_ID}" \
-		|| exit_with_failure "Failed to delete GitHub Actions Runner from repository! Please delete manually: https://github.com/${MY_GITHUB_REPOSITORY}/settings/actions/runners"
-	echo "GitHub Actions Runner deleted successfully."
-	echo
+	# echo "Delete GitHub Actions Runner..."
+	# curl -L \
+	# 	-X DELETE \
+	# 	--fail-with-body \
+	# 	-H "Accept: application/vnd.github+json" \
+	# 	-H "Authorization: Bearer ${MY_GITHUB_TOKEN}" \
+	# 	-H "X-GitHub-Api-Version: 2022-11-28" \
+	# 	"https://api.github.com/repos/${MY_GITHUB_REPOSITORY}/actions/runners/${MY_GITHUB_RUNNER_ID}" \
+	# 	|| exit_with_failure "Failed to delete GitHub Actions Runner from repository! Please delete manually: https://github.com/${MY_GITHUB_REPOSITORY}/settings/actions/runners"
+	# echo "GitHub Actions Runner deleted successfully."
+	# echo
 	echo "The Hetzner Cloud Server and its associated GitHub Actions Runner have been deleted successfully."
 	# Add GitHub Action job summary 
 	# https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions#adding-a-job-summary
@@ -326,8 +328,8 @@ echo "Generate server configuration..."
 jq -n \
 	--arg     location        "$MY_LOCATION" \
 	--arg     runner_version  "$MY_RUNNER_VERSION" \
-	--arg     github_owner_id "$MY_GITHUB_REPOSITORY_OWNER_ID" \
-	--arg     github_repo_id  "$MY_GITHUB_REPOSITORY_ID" \
+	--arg     forgejo_instance "$GITHUB_SERVER_URL" \
+	--arg     forgejo_repository "$MY_GITHUB_REPO_NAME" \
 	--arg     image           "$MY_IMAGE" \
 	--arg     server_type     "$MY_SERVER_TYPE" \
 	--arg     name            "$MY_NAME" \
@@ -423,36 +425,37 @@ if [[ "$MY_HETZNER_SERVER_STATUS" != "running" ]]; then
 	exit_with_failure "Failed to start Hetzner Cloud Server! Please check manually."
 fi
 
+# FIXME: forgejo does not support getting actions runner via the api
 # Wait for GitHub Actions Runner registration
-MAX_RETRIES=$MY_RUNNER_WAIT
-RETRY_COUNT=0
-echo "Wait for GitHub Actions Runner registration..."
-while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
-	# List self-hosted runners for repository
-	# https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2022-11-28#list-self-hosted-runners-for-a-repository
-	curl -L -s \
-		-o "github-runners.json" \
-		-H "Accept: application/vnd.github+json" \
-		-H "Authorization: Bearer ${MY_GITHUB_TOKEN}" \
-		-H "X-GitHub-Api-Version: 2022-11-28" \
-		"https://api.github.com/repos/${MY_GITHUB_REPOSITORY}/actions/runners" \
-		|| exit_with_failure "Failed to list GitHub Actions runners from repository!"
-
-	MY_GITHUB_RUNNER_ID=$(jq -er ".runners[] | select(.name == \"$MY_NAME\") | .id" < "github-runners.json")
-	# Check if MY_GITHUB_RUNNER_ID is an integer
-	if [[ "$MY_GITHUB_RUNNER_ID" =~ ^[0-9]+$ ]]; then
-		echo "GitHub Actions Runner registered."
-		break
-	fi
-
-	RETRY_COUNT=$((RETRY_COUNT + 1)) # Increment retry counter
-
-	echo "GitHub Actions Runner is not yet registered. Wait $WAIT_SEC seconds... (Attempt $RETRY_COUNT/$MAX_RETRIES)"
-	sleep "$WAIT_SEC"
-done
-if [[ ! "$MY_GITHUB_RUNNER_ID" =~ ^[0-9]+$ ]]; then
-	exit_with_failure "GitHub Actions Runner is not registered. Please check installation manually."
-fi
+# MAX_RETRIES=$MY_RUNNER_WAIT
+# RETRY_COUNT=0
+# echo "Wait for GitHub Actions Runner registration..."
+# while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
+# 	# List self-hosted runners for repository
+# 	# https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2022-11-28#list-self-hosted-runners-for-a-repository
+# 	curl -L -s \
+# 		-o "github-runners.json" \
+# 		-H "Accept: application/vnd.github+json" \
+# 		-H "Authorization: Bearer ${MY_GITHUB_TOKEN}" \
+# 		-H "X-GitHub-Api-Version: 2022-11-28" \
+# 		"https://api.github.com/repos/${MY_GITHUB_REPOSITORY}/actions/runners" \
+# 		|| exit_with_failure "Failed to list GitHub Actions runners from repository!"
+#
+# 	MY_GITHUB_RUNNER_ID=$(jq -er ".runners[] | select(.name == \"$MY_NAME\") | .id" < "github-runners.json")
+# 	# Check if MY_GITHUB_RUNNER_ID is an integer
+# 	if [[ "$MY_GITHUB_RUNNER_ID" =~ ^[0-9]+$ ]]; then
+# 		echo "GitHub Actions Runner registered."
+# 		break
+# 	fi
+#
+# 	RETRY_COUNT=$((RETRY_COUNT + 1)) # Increment retry counter
+#
+# 	echo "GitHub Actions Runner is not yet registered. Wait $WAIT_SEC seconds... (Attempt $RETRY_COUNT/$MAX_RETRIES)"
+# 	sleep "$WAIT_SEC"
+# done
+# if [[ ! "$MY_GITHUB_RUNNER_ID" =~ ^[0-9]+$ ]]; then
+# 	exit_with_failure "GitHub Actions Runner is not registered. Please check installation manually."
+# fi
 
 echo
 echo "The Hetzner Cloud Server and its associated GitHub Actions Runner are ready for use." 

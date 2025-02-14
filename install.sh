@@ -14,18 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Install GitHub Actions Runner for Linux with x64 or ARM64 CPU architecture
-# https://github.com/actions/runner
-# https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/about-self-hosted-runners#linux
+# Install Forgejo Actions Runner for Linux with x64 or ARM64 CPU architecture
+# https://code.forgejo.org/forgejo/runner
+# https://forgejo.org/docs/next/admin/runner-installation/
 
 # Get the script's name
 MY_SCRIPT_NAME=$(basename "$0")
 
-# Set default GitHub Actions Runner version (latest)
+# Set default Forgejo Actions Runner version (latest)
 MY_RUNNER_VERSION="latest"
-
-# Set default GitHub Actions Runner installation directory
-MY_RUNNER_DIR="/actions-runner"
 
 # Function to exit the script with a failure message
 function exit_with_failure() {
@@ -37,13 +34,13 @@ function exit_with_failure() {
 function usage {
 	MY_RETURN_CODE="$1"
 	echo -e "Usage: $MY_SCRIPT_NAME [-v <runner_version>] [-d <runner_dir>] [-h]:
-	[-v <runner_version>]  Version (without 'v') of the GitHub Actions Runner. (default: $MY_RUNNER_VERSION)
-	[-d <runner_dir>]      Directory for the GitHub Actions Runner installation. (default: $MY_RUNNER_DIR)
+	[-v <runner_version>]  Version (without 'v') of the Forgejo Actions Runner. (default: $MY_RUNNER_VERSION)
+	[-d <runner_dir>]      Directory for the Forgejo Actions Runner installation. (default: $MY_RUNNER_DIR)
 	[-h]                   Displays this message."
 	exit "$MY_RETURN_CODE"
 }
 
-# If version is "skip", skip GitHub Actions Runner installation.
+# If version is "skip", skip Forgejo Actions Runner installation.
 if [[ "$MY_RUNNER_VERSION" = "skip" ]]; then
 	exit 0
 fi
@@ -51,10 +48,10 @@ fi
 # Define required commands
 MY_COMMANDS=(
 	curl
-	gzip
 	jq
-	sed
-	tar
+	gpg
+	cut
+	wget
 )
 # Check if required commands are available
 for MY_COMMAND in "${MY_COMMANDS[@]}"; do
@@ -69,7 +66,7 @@ aarch64|arm64)
 	MY_ARCH="arm64"
 	;;
 amd64|x86_64)
-	MY_ARCH="x64"
+	MY_ARCH="amd64"
 	;;
 *)
 	exit_with_failure "Cannot determine CPU architecture!"
@@ -94,30 +91,32 @@ while getopts ":v:d:h" opt; do
 	esac
 done
 
-# If version is "latest", fetch the latest version from GitHub API
+# If version is "latest", fetch the latest version from Forgejo API
 if [[ "$MY_RUNNER_VERSION" = "latest" ]]; then
-	MY_RUNNER_LATEST_VERSION=$(curl -sL "https://api.github.com/repos/actions/runner/releases/latest" | jq -r '.tag_name' | sed -e 's/^v//')
+	MY_RUNNER_LATEST_VERSION=$(curl -X 'GET' https://data.forgejo.org/api/v1/repos/forgejo/runner/releases/latest | jq .name -r | cut -c 2-)
 	MY_RUNNER_VERSION="$MY_RUNNER_LATEST_VERSION"
 	if [[ -z "$MY_RUNNER_LATEST_VERSION" || "null" == "$MY_RUNNER_LATEST_VERSION" ]]; then
-		exit_with_failure "Could not retrieve the latest GitHub Actions Runner version!"
+		exit_with_failure "Could not retrieve the latest Forgejo Actions Runner version!"
 	fi
-	echo "GitHub Actions Runner version 'v${MY_RUNNER_LATEST_VERSION}' is detected as the latest version."
+	echo "Forgejo Actions Runner version 'v${MY_RUNNER_LATEST_VERSION}' is detected as the latest version."
 else
-	echo "GitHub Actions Runner version 'v$MY_INPUT_RUNNER_VERSION' is specified as version."
+	echo "Forgejo Actions Runner version 'v$MY_INPUT_RUNNER_VERSION' is specified as version."
 	MY_RUNNER_VERSION="$MY_INPUT_RUNNER_VERSION"
 fi
 
 # Create directory (if it doesn't exist) and change to the installation directory
 mkdir -p "$MY_RUNNER_DIR" && \
 cd "$MY_RUNNER_DIR" && \
-# Download the GitHub Actions Runner archive
-curl -O -L "https://github.com/actions/runner/releases/download/v${MY_RUNNER_VERSION}/actions-runner-linux-${MY_ARCH}-${MY_RUNNER_VERSION}.tar.gz" && \
-tar xzf "actions-runner-linux-${MY_ARCH}-${MY_RUNNER_VERSION}.tar.gz"
+# Download runner
+wget -O forgejo-runner "https://data.forgejo.org/forgejo/runner/releases/download/v${MY_RUNNER_VERSION}/forgejo-runner-${MY_RUNNER_VERSION}-linux-${MY_ARCH}" && \
+# Download and verify signature
+wget -O forgejo-runner.asc "https://data.forgejo.org/forgejo/runner/releases/download/v${MY_RUNNER_VERSION}/forgejo-runner-${MY_RUNNER_VERSION}-linux-${MY_ARCH}.asc" && \
+gpg --keyserver keys.openpgp.org --recv EB114F5E6C0DC2BCDD183550A4B61A2DC5923710 && \
+gpg --verify forgejo-runner.asc forgejo-runner && \
+# Copy binary to path
+cp forgejo-runner /usr/local/bin/forgejo-runner && \
+chmod +x /usr/local/bin/forgejo-runner
 
-# Patch for Ubuntu 24.04 (https://github.com/actions/runner/issues/3150)
-# This patch might be necessary for successful installation on Ubuntu 24.04
-sed -i 's/libicu72/libicu72 libicu74/' ./bin/installdependencies.sh
+# Register runner
+/usr/local/bin/forgejo-runner register --no-interactive --instance ${GITHUB_SERVER_URL} --token ${MY_GITHUB_RUNNER_REGISTRATION_TOKEN} --name "${MY_NAME}" --labels "${MY_NAME},hetzner" 
 
-# Run the installation script
-./bin/installdependencies.sh && \
-echo "GitHub Actions Runner installed successfully."

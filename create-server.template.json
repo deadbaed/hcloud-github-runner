@@ -1,11 +1,11 @@
 {
   "location": $location,
   "labels": {
-    "type": "github-runner",
+    "type": "forgejo-runner",
     "os-image": $image,
-    "gh-ver": $runner_version,
-    "gh-owner-id": $github_owner_id,
-    "gh-repo-id": $github_repo_id
+    "runner-version": $runner_version,
+    "forgejo-instance": $forgejo_instance,
+    "forgejo-repository": $forgejo_repository
   },
   "image": $image,
   "server_type": $server_type,
