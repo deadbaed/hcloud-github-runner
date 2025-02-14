@@ -59,6 +59,15 @@ done
 # https://docs.github.com/en/actions/sharing-automations/creating-actions/metadata-syntax-for-github-actions#inputs
 # When you specify an input, GitHub creates an environment variable for the input with the name INPUT_<VARIABLE_NAME>.
 
+# Specify here which mode you want to use (default: create):
+# - create : Create a new runner
+# - delete : Delete the previously created runner
+# If INPUT_MODE is set, use its value; otherwise, use "create".
+MY_MODE=${INPUT_MODE:-"create"}
+if [[ "$MY_MODE" != "create" && "$MY_MODE" != "delete" ]]; then
+	exit_with_failure "Mode must be 'create' or 'delete'."
+fi
+
 # Set the Hetzner Cloud API token.
 # Retrieves the value from the INPUT_HCLOUD_TOKEN environment variable.
 MY_HETZNER_TOKEN=${INPUT_HCLOUD_TOKEN}
@@ -77,7 +86,7 @@ fi
 # It can be for the whole instance, for a user, or for just a single repository.
 # Retrieves the value from the INPUT_FORGEJO_RUNNER_REGISTRATION_TOKEN environment variable.
 MY_FORGEJO_RUNNER_REGISTRATION_TOKEN=${INPUT_FORGEJO_RUNNER_REGISTRATION_TOKEN}
-if [[ -z "$MY_FORGEJO_RUNNER_REGISTRATION_TOKEN" ]]; then
+if [[ -z "$MY_FORGEJO_RUNNER_REGISTRATION_TOKEN" && "$MY_MODE" == "create" ]]; then
 	exit_with_failure "Forgejo Runner Registration Token is required!"
 fi
 
@@ -93,15 +102,6 @@ fi
 MY_GITHUB_REPOSITORY_OWNER_ID=${GITHUB_REPOSITORY_OWNER_ID:-"0"}
 # Set The ID of the repository (used for Hetzner Cloud Server label).
 MY_GITHUB_REPOSITORY_ID=${GITHUB_REPOSITORY_ID:-"0"}
-
-# Specify here which mode you want to use (default: create):
-# - create : Create a new runner
-# - delete : Delete the previously created runner
-# If INPUT_MODE is set, use its value; otherwise, use "create".
-MY_MODE=${INPUT_MODE:-"create"}
-if [[ "$MY_MODE" != "create" && "$MY_MODE" != "delete" ]]; then
-	exit_with_failure "Mode must be 'create' or 'delete'."
-fi
 
 # Enable IPv4 (default: false)
 # If INPUT_ENABLE_IPV4 is set, use its value; otherwise, use "false".

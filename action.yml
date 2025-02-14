@@ -13,8 +13,8 @@ inputs:
     required: true
   forgejo_runner_registration_token:
     description: >-
-      Forgejo runner registration token. Currently available only on the web, not on the api.
-    required: true
+      Forgejo runner registration token. Currently available only on the web, not on the api. Required only when creating server
+    required: false
   hcloud_token:
     description: >-
       Hetzner Cloud API token with 'Read & Write' permissions assigned.
