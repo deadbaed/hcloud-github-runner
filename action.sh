@@ -59,6 +59,15 @@ done
 # https://docs.github.com/en/actions/sharing-automations/creating-actions/metadata-syntax-for-github-actions#inputs
 # When you specify an input, GitHub creates an environment variable for the input with the name INPUT_<VARIABLE_NAME>.
 
+# Specify here which mode you want to use (default: create):
+# - create : Create a new runner
+# - delete : Delete the previously created runner
+# If INPUT_MODE is set, use its value; otherwise, use "create".
+MY_MODE=${INPUT_MODE:-"create"}
+if [[ "$MY_MODE" != "create" && "$MY_MODE" != "delete" ]]; then
+	exit_with_failure "Mode must be 'create' or 'delete'."
+fi
+
 # Set the Hetzner Cloud API token.
 # Retrieves the value from the INPUT_HCLOUD_TOKEN environment variable.
 MY_HETZNER_TOKEN=${INPUT_HCLOUD_TOKEN}
@@ -70,7 +79,9 @@ fi
 # It can be for the whole instance, for a user, or for just a single repository.
 # Retrieves the value from the INPUT_FORGEJO_RUNNER_REGISTRATION_TOKEN environment variable.
 MY_FORGEJO_RUNNER_REGISTRATION_TOKEN=${INPUT_FORGEJO_RUNNER_REGISTRATION_TOKEN}
-if [[ -z "$MY_FORGEJO_RUNNER_REGISTRATION_TOKEN" ]]; then
+if [[ -z "$MY_FORGEJO_RUNNER_REGISTRATION_TOKEN" && "$MY_MODE" == "create" ]]; then
+	# Require runner registration token only in "create" mode, since it is useless in delete mode
+	# (and the api does not support runner deletion yet)
 	exit_with_failure "Forgejo Runner Registration Token is required!"
 fi
 
@@ -81,15 +92,6 @@ fi
 MY_GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
 if [[ -z "$MY_GITHUB_REPOSITORY" ]]; then
 	exit_with_failure "GitHub repository is required!"
-fi
-
-# Specify here which mode you want to use (default: create):
-# - create : Create a new runner
-# - delete : Delete the previously created runner
-# If INPUT_MODE is set, use its value; otherwise, use "create".
-MY_MODE=${INPUT_MODE:-"create"}
-if [[ "$MY_MODE" != "create" && "$MY_MODE" != "delete" ]]; then
-	exit_with_failure "Mode must be 'create' or 'delete'."
 fi
 
 # Enable IPv4 (default: false)
