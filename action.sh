@@ -59,15 +59,6 @@ done
 # https://docs.github.com/en/actions/sharing-automations/creating-actions/metadata-syntax-for-github-actions#inputs
 # When you specify an input, GitHub creates an environment variable for the input with the name INPUT_<VARIABLE_NAME>.
 
-# Specify here which mode you want to use (default: create):
-# - create : Create a new runner
-# - delete : Delete the previously created runner
-# If INPUT_MODE is set, use its value; otherwise, use "create".
-MY_MODE=${INPUT_MODE:-"create"}
-if [[ "$MY_MODE" != "create" && "$MY_MODE" != "delete" ]]; then
-	exit_with_failure "Mode must be 'create' or 'delete'."
-fi
-
 # Set the Hetzner Cloud API token.
 # Retrieves the value from the INPUT_HCLOUD_TOKEN environment variable.
 MY_HETZNER_TOKEN=${INPUT_HCLOUD_TOKEN}
@@ -86,7 +77,7 @@ fi
 # It can be for the whole instance, for a user, or for just a single repository.
 # Retrieves the value from the INPUT_FORGEJO_RUNNER_REGISTRATION_TOKEN environment variable.
 MY_FORGEJO_RUNNER_REGISTRATION_TOKEN=${INPUT_FORGEJO_RUNNER_REGISTRATION_TOKEN}
-if [[ -z "$MY_FORGEJO_RUNNER_REGISTRATION_TOKEN" && "$MY_MODE" == "create" ]]; then
+if [[ -z "$MY_FORGEJO_RUNNER_REGISTRATION_TOKEN" ]]; then
 	exit_with_failure "Forgejo Runner Registration Token is required!"
 fi
 
@@ -98,10 +89,15 @@ MY_GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
 if [[ -z "$MY_GITHUB_REPOSITORY" ]]; then
 	exit_with_failure "GitHub repository is required!"
 fi
-# Set the repository owner's account ID (used for Hetzner Cloud Server label).
-MY_GITHUB_REPOSITORY_OWNER_ID=${GITHUB_REPOSITORY_OWNER_ID:-"0"}
-# Set The ID of the repository (used for Hetzner Cloud Server label).
-MY_GITHUB_REPOSITORY_ID=${GITHUB_REPOSITORY_ID:-"0"}
+
+# Specify here which mode you want to use (default: create):
+# - create : Create a new runner
+# - delete : Delete the previously created runner
+# If INPUT_MODE is set, use its value; otherwise, use "create".
+MY_MODE=${INPUT_MODE:-"create"}
+if [[ "$MY_MODE" != "create" && "$MY_MODE" != "delete" ]]; then
+	exit_with_failure "Mode must be 'create' or 'delete'."
+fi
 
 # Enable IPv4 (default: false)
 # If INPUT_ENABLE_IPV4 is set, use its value; otherwise, use "false".
@@ -175,7 +171,7 @@ MY_SERVER_TYPE=${INPUT_SERVER_TYPE:-"cx22"}
 # Set maximal wait time (retries * 10 sec) for Hetzner Cloud Server (default: 30 [5 min])
 # If INPUT_SERVER_WAIT is set, use its value; otherwise, use "30".
 MY_SERVER_WAIT=${INPUT_SERVER_WAIT:-"30"}
-# Check if MY_RUNNER_WAIT is an integer
+# Check if MY_SERVER_WAIT is an integer
 if [[ ! "$MY_SERVER_WAIT" =~ ^[0-9]+$ ]]; then
 	exit_with_failure "The maximum wait time (reties) for a running Hetzner Cloud Server must be an integer!"
 fi
@@ -188,30 +184,21 @@ if [[ "$MY_SSH_KEY" != "null" && ! "$MY_SSH_KEY" =~ ^[0-9]+$ ]]; then
 	exit_with_failure "The SSH key ID must be 'null' or an integer!"
 fi
 
-# Set default GitHub Actions Runner installation directory (default: /actions-runner)
-# If INPUT_RUNNER_DIR is set, its value is used. Otherwise, the default value "/actions-runner" is used.
-# TODO: tmp folder for installers and scripts
-MY_RUNNER_DIR=${INPUT_RUNNER_DIR:-"/actions-runner"}
+# Set default Forgejo Actions Runner installation directory (default: /tmp/forgejo-runner.XXXX)
+# If INPUT_RUNNER_DIR is set, its value is used. Otherwise, the default value /tmp/forgejo-runner.XXXX is used.
+MY_RUNNER_DIR=${INPUT_RUNNER_DIR:-"$(mktemp -d /run/forgejo-runner.XXXX)"}
 # Check allowed characters
 if [[ ! "$MY_RUNNER_DIR" =~ ^/([^/]+/)*[^/]+$ ]]; then
 	exit_with_failure "'$MY_RUNNER_DIR' is not a valid absolute directory path without a trailing slash!"
 fi
 
-# Set default GitHub Actions Runner version (default: latest)
+# Set default Forgejo Actions Runner version (default: latest)
 # If INPUT_RUNNER_VERSION is set, its value is used. Otherwise, the default value "latest" is used.
-# Releases: https://github.com/actions/runner/releases
+# Releases: https://code.forgejo.org/forgejo/runner/releases
 MY_RUNNER_VERSION=${INPUT_RUNNER_VERSION:-"latest"}
 # Check allowed values
 if [[ "$MY_RUNNER_VERSION" != "latest" && "$MY_RUNNER_VERSION" != "skip" && ! "$MY_RUNNER_VERSION" =~ ^[0-9\.]{1,63}$ ]]; then
-	exit_with_failure "'$MY_RUNNER_VERSION' is not a valid GitHub Actions Runner version! Enter 'latest', 'skip' or the version without 'v'."
-fi
-
-# Set maximal wait time (retries * 10 sec) for GitHub Actions Runner registration (default: 30 [5 min])
-# If MY_RUNNER_WAIT is set, use its value; otherwise, use "30".
-MY_RUNNER_WAIT=${INPUT_RUNNER_WAIT:-"60"}
-# Check if MY_RUNNER_WAIT is an integer
-if [[ ! "$MY_RUNNER_WAIT" =~ ^[0-9]+$ ]]; then
-	exit_with_failure "The maximum wait time (reties) for GitHub Action Runner registration must be an integer!"
+	exit_with_failure "'$MY_RUNNER_VERSION' is not a valid Forgejo Actions Runner version! Enter 'latest', 'skip' or the version without 'v'."
 fi
 
 # Set Hetzner Cloud Server ID
@@ -240,63 +227,16 @@ if [[ "$MY_MODE" == "delete" ]]; then
 		|| exit_with_failure "Error deleting server!"
 	echo "Hetzner Cloud Server deleted successfully."
 
-	# FIXME: forgejo cannot list runners through api
-	# List self-hosted runners for repository
-	# https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2022-11-28#list-self-hosted-runners-for-a-repository
-	# echo "List self-hosted runners..."
-	# curl -L \
-	# 	--fail-with-body \
-	# 	-o "github-runners.json" \
-	# 	-H "Accept: application/vnd.github+json" \
-	# 	-H "Authorization: Bearer ${MY_FORGEJO_TOKEN}" \
-	# 	-H "X-GitHub-Api-Version: 2022-11-28" \
-	# 	"https://api.github.com/repos/${MY_GITHUB_REPOSITORY}/actions/runners" \
-	# 	|| exit_with_failure "Failed to list GitHub Actions runners from repository!"
-
-	# MY_GITHUB_RUNNER_ID=$(jq -er ".runners[] | select(.name == \"$MY_NAME\") | .id" < "github-runners.json")
-	# # Check if MY_GITHUB_RUNNER_ID is an integer
-	# if [[ ! "$MY_GITHUB_RUNNER_ID" =~ ^[0-9]+$ ]]; then
-	# 	exit_with_failure "Failed to get ID of the GitHub Actions Runner!"
-	# fi
-
-	# FIXME: forgejo cannot delete runners through api
-	# Delete a self-hosted runner from repository
-	# https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2022-11-28#delete-a-self-hosted-runner-from-a-repository
-	# echo "Delete GitHub Actions Runner..."
-	# curl -L \
-	# 	-X DELETE \
-	# 	--fail-with-body \
-	# 	-H "Accept: application/vnd.github+json" \
-	# 	-H "Authorization: Bearer ${MY_FORGEJO_TOKEN}" \
-	# 	-H "X-GitHub-Api-Version: 2022-11-28" \
-	# 	"https://api.github.com/repos/${MY_GITHUB_REPOSITORY}/actions/runners/${MY_GITHUB_RUNNER_ID}" \
-	# 	|| exit_with_failure "Failed to delete GitHub Actions Runner from repository! Please delete manually: https://github.com/${MY_GITHUB_REPOSITORY}/settings/actions/runners"
-	# echo "GitHub Actions Runner deleted successfully."
-	# echo
-	echo "The Hetzner Cloud Server and its associated GitHub Actions Runner have been deleted successfully."
+	echo "The Hetzner Cloud Server has been deleted successfully."
 	# Add GitHub Action job summary 
 	# https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions#adding-a-job-summary
-	echo "The Hetzner Cloud Server and its associated GitHub Actions Runner have been deleted successfully 🗑️" >> "$GITHUB_STEP_SUMMARY"
+	echo "The Hetzner Cloud Server has been deleted successfully 🗑️" >> "$GITHUB_STEP_SUMMARY"
 	exit 0
 fi
 
 #
 # CREATE
 #
-
-# Get current Forgejo Actions registration token for registering a self-hosted runner to a repository
-# https://docs.github.com/en/rest/actions/self-hosted-runners#create-a-registration-token-for-a-repository
-# echo "Getting current Forgejo Actions Runner registration token..."
-# curl -L \
-# 	-X "GET" \
-# 	--fail-with-body \
-# 	-o "registration-token.json" \
-# 	-H "Authorization: token ${MY_FORGEJO_TOKEN}" \
-# 	"${GITHUB_SERVER_URL}/api/v1/repos/${MY_GITHUB_REPOSITORY}/runners/registration-token" \
-# 	|| exit_with_failure "Failed to retrieve Forgejo Actions Runner registration token!"
-
-# Read the GitHub Runner registration token from a file (assuming valid JSON)
-#MY_GITHUB_RUNNER_REGISTRATION_TOKEN=$(jq -er '.token' < "registration-token.json")
 
 # Encode the contents of the "install.sh" and runner script into base64
 # BSD
@@ -308,21 +248,14 @@ else
 	MY_INSTALL_SH_BASE64=$(base64 --wrap=0 < "install.sh")
 	MY_PRE_RUNNER_SCRIPT_BASE64=$(echo "$MY_PRE_RUNNER_SCRIPT" | base64 --wrap=0)
 fi
-# Split repository into owner and repository name
-# MY_GITHUB_OWNER="${MY_GITHUB_REPOSITORY%/*}"   # Extract the part before the last /
-# MY_GITHUB_REPO_NAME="${MY_GITHUB_REPOSITORY##*/}"   # Extract the part after the last /
 
 # Split protocol from instance url 
 FORGEJO_INSTANCE="${GITHUB_SERVER_URL#*://}"
 
-# Replace "/" by "_", Hetzner does not allow "/" in label values
+# Replace "/" by "_" in repository name, Hetzner does not allow "/" in label values
 FORGEJO_REPOSITORY="${MY_GITHUB_REPOSITORY//\//_}"
 
 # Export environment variables for use in the cloud-init template
-# export MY_GITHUB_OWNER
-# export MY_GITHUB_REPO_NAME
-# export MY_GITHUB_REPOSITORY
-# export MY_GITHUB_RUNNER_REGISTRATION_TOKEN
 export GITHUB_SERVER_URL
 export MY_FORGEJO_RUNNER_REGISTRATION_TOKEN
 export MY_INSTALL_SH_BASE64
@@ -341,16 +274,16 @@ envsubst < cloud-init.template.yml > cloud-init.yml
 # Optimize values for valid labels: https://docs.hetzner.cloud/#labels
 echo "Generate server configuration..."
 jq -n \
-	--arg     location        "$MY_LOCATION" \
-	--arg     runner_version  "$MY_RUNNER_VERSION" \
-	--arg     forgejo_instance "$FORGEJO_INSTANCE" \
-	--arg     forgejo_repository "$FORGEJO_REPOSITORY" \
-	--arg     image           "$MY_IMAGE" \
-	--arg     server_type     "$MY_SERVER_TYPE" \
-	--arg     name            "$MY_NAME" \
-	--argjson enable_ipv4     "$MY_ENABLE_IPV4" \
-	--argjson enable_ipv6     "$MY_ENABLE_IPV6" \
-	--rawfile cloud_init_yml  "cloud-init.yml" \
+	--arg location "$MY_LOCATION" \
+	--arg runner_version "$MY_RUNNER_VERSION" \
+	--arg forgejo_instance "$FORGEJO_INSTANCE" \
+	--arg forgejo_repository "$FORGEJO_REPOSITORY" \
+	--arg image "$MY_IMAGE" \
+	--arg server_type "$MY_SERVER_TYPE" \
+	--arg name "$MY_NAME" \
+	--argjson enable_ipv4 "$MY_ENABLE_IPV4" \
+	--argjson enable_ipv6 "$MY_ENABLE_IPV6" \
+	--rawfile cloud_init_yml "cloud-init.yml" \
 	-f create-server.template.json > create-server.json \
 	|| exit_with_failure "Failed to generate create-server.json!"
 # Add the primary IPv4 address if available (not "null")
@@ -410,7 +343,7 @@ echo "server_id=$MY_HETZNER_SERVER_ID" >> "$GITHUB_OUTPUT"
 
 # Wait for server
 MAX_RETRIES=$MY_SERVER_WAIT
-WAIT_SEC=30
+WAIT_SEC=10
 RETRY_COUNT=0
 echo "Wait for server..."
 while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
@@ -440,42 +373,12 @@ if [[ "$MY_HETZNER_SERVER_STATUS" != "running" ]]; then
 	exit_with_failure "Failed to start Hetzner Cloud Server! Please check manually."
 fi
 
-# FIXME: forgejo does not support getting actions runner via the api
-# Wait for GitHub Actions Runner registration
-# MAX_RETRIES=$MY_RUNNER_WAIT
-# RETRY_COUNT=0
-# echo "Wait for GitHub Actions Runner registration..."
-# while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
-# 	# List self-hosted runners for repository
-# 	# https://docs.github.com/en/rest/actions/self-hosted-runners?apiVersion=2022-11-28#list-self-hosted-runners-for-a-repository
-# 	curl -L -s \
-# 		-o "github-runners.json" \
-# 		-H "Accept: application/vnd.github+json" \
-# 		-H "Authorization: Bearer ${MY_FORGEJO_TOKEN}" \
-# 		-H "X-GitHub-Api-Version: 2022-11-28" \
-# 		"https://api.github.com/repos/${MY_GITHUB_REPOSITORY}/actions/runners" \
-# 		|| exit_with_failure "Failed to list GitHub Actions runners from repository!"
-#
-# 	MY_GITHUB_RUNNER_ID=$(jq -er ".runners[] | select(.name == \"$MY_NAME\") | .id" < "github-runners.json")
-# 	# Check if MY_GITHUB_RUNNER_ID is an integer
-# 	if [[ "$MY_GITHUB_RUNNER_ID" =~ ^[0-9]+$ ]]; then
-# 		echo "GitHub Actions Runner registered."
-# 		break
-# 	fi
-#
-# 	RETRY_COUNT=$((RETRY_COUNT + 1)) # Increment retry counter
-#
-# 	echo "GitHub Actions Runner is not yet registered. Wait $WAIT_SEC seconds... (Attempt $RETRY_COUNT/$MAX_RETRIES)"
-# 	sleep "$WAIT_SEC"
-# done
-# if [[ ! "$MY_GITHUB_RUNNER_ID" =~ ^[0-9]+$ ]]; then
-# 	exit_with_failure "GitHub Actions Runner is not registered. Please check installation manually."
-# fi
+# TODO: if ssh key is provided, get it with hetzner api, ssh to the server and get status of runner
 
 echo
-echo "The Hetzner Cloud Server and its associated GitHub Actions Runner are ready for use." 
-echo "Runner: https://github.com/${MY_GITHUB_REPOSITORY}/settings/actions/runners/${MY_GITHUB_RUNNER_ID}"
+echo "The Hetzner Cloud Server and its associated Forgejo Actions Runner are ready for use." 
+echo "Runner: ${GITHUB_SERVER_URL}/${MY_GITHUB_REPOSITORY}/settings/actions/runners/"
 # Add GitHub Action job summary 
 # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions#adding-a-job-summary
-echo "The Hetzner Cloud Server and its associated [GitHub Actions Runner](https://github.com/${MY_GITHUB_REPOSITORY}/settings/actions/runners/${MY_GITHUB_RUNNER_ID}) are ready for use 🚀" >> "$GITHUB_STEP_SUMMARY"
+echo "The Hetzner Cloud Server and its associated [Forgejo Actions Runner](${GITHUB_SERVER_URL}/${MY_GITHUB_REPOSITORY}/settings/actions/runners/) are ready for use 🚀" >> "$GITHUB_STEP_SUMMARY"
 exit 0

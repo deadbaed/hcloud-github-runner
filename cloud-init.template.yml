@@ -10,11 +10,29 @@ package_upgrade: false
 runcmd:
   - bash $MY_RUNNER_DIR/pre_runner_script.sh
   - bash $MY_RUNNER_DIR/install.sh -v "$MY_RUNNER_VERSION" -d "$MY_RUNNER_DIR"
-  - /usr/local/bin/forgejo-runner register --no-interactive --instance "$GITHUB_SERVER_URL" --token "$MY_FORGEJO_RUNNER_REGISTRATION_TOKEN" --name "$MY_NAME" --labels "$MY_NAME:host://-self-hosted,hetzner" 
-  - /usr/local/bin/forgejo-runner generate-config > /root/forgejo-runner-config.yml
-  - /usr/local/bin/forgejo-runner daemon -c /root/forgejo-runner-config.yml
-  - echo "Started Forgejo runner"
-# TODO: use systemd service to start runner?
+  - cd /root
+  - /usr/local/bin/forgejo-runner register --no-interactive --instance "$GITHUB_SERVER_URL" --token "$MY_FORGEJO_RUNNER_REGISTRATION_TOKEN" --name "$MY_NAME" --labels "$MY_NAME:host,forgejo-runner-hetzner:host" 
+  - /usr/local/bin/forgejo-runner generate-config > config.yml
+  - |
+    cat > /etc/systemd/system/forgejo-runner.service <<EOF
+    [Unit]
+    Description=Forgejo runner
+    Wants=network.target
+    After=network.target
+
+    [Service]
+    Type=simple
+    User=runner
+    Group=runner
+    WorkingDirectory=/root
+    ExecStart=/usr/local/bin/forgejo-runner daemon
+    Restart=on-failure
+    RestartSec=5
+
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+  - systemctl start forgejo-runner.service
 write_files:
   - path: $MY_RUNNER_DIR/pre_runner_script.sh
     encoding: b64

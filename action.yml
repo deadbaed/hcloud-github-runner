@@ -13,7 +13,7 @@ inputs:
     required: true
   forgejo_runner_registration_token:
     description: >-
-      Forgejo runner registration token. Currently available only on the web, not on the api. Required only when creating server
+      Forgejo runner registration token. Currently available only on the web interface and not on the api.
     required: false
   hcloud_token:
     description: >-
@@ -68,7 +68,7 @@ inputs:
     default: '/actions-runner'
   runner_version:
     description: >-
-      GitHub Actions Runner version (omit 'v'; e.g., '2.321.0').
+      GitHub Actions Runner version (omit 'v'; e.g., '2.1.0').
       'latest' will install the latest version.
       'skip' will skip the installation. A working installation is expected in the 'runner_dir'.
     required: false
