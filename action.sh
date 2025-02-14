@@ -278,7 +278,7 @@ fi
 # Get current Forgejo Actions registration token for registering a self-hosted runner to a repository
 # https://docs.github.com/en/rest/actions/self-hosted-runners#create-a-registration-token-for-a-repository
 echo "Getting current Forgejo Actions Runner registration token..."
-curl -L \
+curl --trace - -L \
 	-X "GET" \
 	--fail-with-body \
 	-o "registration-token.json" \
