@@ -68,9 +68,17 @@ fi
 
 # Set the Forgejo Personal Access Token (PAT).
 # Retrieves the value from the INPUT_FORGEJO_TOKEN environment variable.
-MY_FORGEJO_TOKEN=${INPUT_FORGEJO_TOKEN}
-if [[ -z "$MY_FORGEJO_TOKEN" ]]; then
-	exit_with_failure "Forgejo Personal Access Token (PAT) token is required!"
+# MY_FORGEJO_TOKEN=${INPUT_FORGEJO_TOKEN}
+# if [[ -z "$MY_FORGEJO_TOKEN" ]]; then
+# 	exit_with_failure "Forgejo Personal Access Token (PAT) token is required!"
+# fi
+
+# Set the Forgejo Action Registration Token, to register runner to the instance
+# It can be for the whole instance, for a user, or for just a single repository.
+# Retrieves the value from the INPUT_FORGEJO_RUNNER_REGISTRATION_TOKEN environment variable.
+MY_FORGEJO_RUNNER_REGISTRATION_TOKEN=${INPUT_FORGEJO_RUNNER_REGISTRATION_TOKEN}
+if [[ -z "$MY_FORGEJO_RUNNER_REGISTRATION_TOKEN" ]]; then
+	exit_with_failure "Forgejo Runner Registration Token is required!"
 fi
 
 # Set the GitHub repository name.
@@ -277,17 +285,17 @@ fi
 
 # Get current Forgejo Actions registration token for registering a self-hosted runner to a repository
 # https://docs.github.com/en/rest/actions/self-hosted-runners#create-a-registration-token-for-a-repository
-echo "Getting current Forgejo Actions Runner registration token..."
-curl -v -L \
-	-X "GET" \
-	--fail-with-body \
-	-o "registration-token.json" \
-	-H "Authorization: token ${MY_FORGEJO_TOKEN}" \
-	"${GITHUB_SERVER_URL}/api/v1/repos/${MY_GITHUB_REPOSITORY}/runners/registration-token" \
-	|| exit_with_failure "Failed to retrieve Forgejo Actions Runner registration token!"
+# echo "Getting current Forgejo Actions Runner registration token..."
+# curl -L \
+# 	-X "GET" \
+# 	--fail-with-body \
+# 	-o "registration-token.json" \
+# 	-H "Authorization: token ${MY_FORGEJO_TOKEN}" \
+# 	"${GITHUB_SERVER_URL}/api/v1/repos/${MY_GITHUB_REPOSITORY}/runners/registration-token" \
+# 	|| exit_with_failure "Failed to retrieve Forgejo Actions Runner registration token!"
 
 # Read the GitHub Runner registration token from a file (assuming valid JSON)
-MY_GITHUB_RUNNER_REGISTRATION_TOKEN=$(jq -er '.token' < "registration-token.json")
+#MY_GITHUB_RUNNER_REGISTRATION_TOKEN=$(jq -er '.token' < "registration-token.json")
 
 # Encode the contents of the "install.sh" and runner script into base64
 # BSD
@@ -307,7 +315,8 @@ MY_GITHUB_REPO_NAME="${MY_GITHUB_REPOSITORY##*/}"   # Extract the part after the
 export MY_GITHUB_OWNER
 export MY_GITHUB_REPO_NAME
 export MY_GITHUB_REPOSITORY
-export MY_GITHUB_RUNNER_REGISTRATION_TOKEN
+# export MY_GITHUB_RUNNER_REGISTRATION_TOKEN
+# MY_FORGEJO_RUNNER_REGISTRATION_TOKEN is already exported
 export MY_INSTALL_SH_BASE64
 export MY_NAME
 export MY_PRE_RUNNER_SCRIPT_BASE64

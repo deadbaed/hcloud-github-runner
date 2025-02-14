@@ -11,9 +11,9 @@ inputs:
     description: >-
       Choose either 'create' to create a new GitHub Actions Runner or 'delete' to delete a previously created one.
     required: true
-  forgejo_token:
+  forgejo_runner_registration_token:
     description: >-
-      Fine-grained Forgejo Personal Access Token (PAT) with 'Read' access to 'Repository' assigned.
+      Forgejo runner registration token. Currently available only on the web, not on the api.
     required: true
   hcloud_token:
     description: >-
@@ -125,7 +125,7 @@ runs:
       env:
         INPUT_ENABLE_IPV4: ${{ inputs.enable_ipv4 }}
         INPUT_ENABLE_IPV6: ${{ inputs.enable_ipv6 }}
-        INPUT_FORGEJO_TOKEN: ${{ inputs.forgejo_token }}
+        INPUT_FORGEJO_RUNNER_REGISTRATION_TOKEN: ${{ inputs.forgejo_runner_registration_token }}
         INPUT_HCLOUD_TOKEN: ${{ inputs.hcloud_token }}
         INPUT_IMAGE: ${{ inputs.image }}
         INPUT_LOCATION: ${{ inputs.location }}
