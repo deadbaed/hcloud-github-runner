@@ -377,8 +377,6 @@ if [[ "$MY_NETWORK" != "null" ]]; then
 	echo "Network added to create-server.json."
 fi
 
-cat create-server.json
-
 # Send a POST request to the Hetzner Cloud API to create a server.
 # https://docs.hetzner.cloud/#servers-create-a-server
 echo "Create server..."
