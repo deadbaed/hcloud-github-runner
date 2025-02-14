@@ -424,6 +424,9 @@ fi
 
 # Special for Forgejo, since we cannot use its api to get registration status
 if [[ "$MY_FORGEJO_USE_SSH_FOR_RUNNER_WAIT" == "true" ]]; then
+
+	set -x
+
 	# Wait for Forgejo Actions Runner registration
 	MAX_RETRIES=$MY_RUNNER_WAIT
 	RETRY_COUNT=0
