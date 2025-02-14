@@ -439,7 +439,7 @@ if [[ "$MY_FORGEJO_USE_SSH_FOR_RUNNER_WAIT" == "true" ]]; then
 			MY_FORGEJO_USE_SSH_IP=$MY_FORGEJO_USE_SSH_IPV4
 		else
 			# Have a complete ipv6
-			MY_FORGEJO_USE_SSH_IP="[${MY_FORGEJO_USE_SSH_IPV6%::*}::1]"
+			MY_FORGEJO_USE_SSH_IP="${MY_FORGEJO_USE_SSH_IPV6%::*}::1"
 		fi
 
 		# Get status of runner via ssh
