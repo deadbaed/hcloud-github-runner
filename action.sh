@@ -66,13 +66,6 @@ if [[ -z "$MY_HETZNER_TOKEN" ]]; then
 	exit_with_failure "Hetzner Cloud API token is not set."
 fi
 
-# Set the Forgejo Personal Access Token (PAT).
-# Retrieves the value from the INPUT_FORGEJO_TOKEN environment variable.
-# MY_FORGEJO_TOKEN=${INPUT_FORGEJO_TOKEN}
-# if [[ -z "$MY_FORGEJO_TOKEN" ]]; then
-# 	exit_with_failure "Forgejo Personal Access Token (PAT) token is required!"
-# fi
-
 # Set the Forgejo Action Registration Token, to register runner to the instance
 # It can be for the whole instance, for a user, or for just a single repository.
 # Retrieves the value from the INPUT_FORGEJO_RUNNER_REGISTRATION_TOKEN environment variable.
@@ -228,6 +221,7 @@ if [[ "$MY_MODE" == "delete" ]]; then
 	echo "Hetzner Cloud Server deleted successfully."
 
 	echo "The Hetzner Cloud Server has been deleted successfully."
+	echo "Forgejo Actions Runner was not deleted, since it is not possible to do it via the api, you will need to delete it manually."
 	# Add GitHub Action job summary 
 	# https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/workflow-commands-for-github-actions#adding-a-job-summary
 	echo "The Hetzner Cloud Server has been deleted successfully 🗑️" >> "$GITHUB_STEP_SUMMARY"
