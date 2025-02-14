@@ -311,6 +311,9 @@ fi
 MY_GITHUB_OWNER="${MY_GITHUB_REPOSITORY%/*}"   # Extract the part before the last /
 MY_GITHUB_REPO_NAME="${MY_GITHUB_REPOSITORY##*/}"   # Extract the part after the last /
 
+# Split protocol from instance url 
+FORGEJO_INSTANCE="${GITHUB_SERVER_URL#*://}"
+
 # Export environment variables for use in the cloud-init template
 export MY_GITHUB_OWNER
 export MY_GITHUB_REPO_NAME
@@ -335,8 +338,8 @@ echo "Generate server configuration..."
 jq -n \
 	--arg     location        "$MY_LOCATION" \
 	--arg     runner_version  "$MY_RUNNER_VERSION" \
-	--arg     forgejo_instance "$GITHUB_SERVER_URL" \
-	--arg     forgejo_repository "$MY_GITHUB_REPO_NAME" \
+	--arg     forgejo_instance "$FORGEJO_INSTANCE" \
+	--arg     forgejo_repository "$MY_GITHUB_REPOSITORY" \
 	--arg     image           "$MY_IMAGE" \
 	--arg     server_type     "$MY_SERVER_TYPE" \
 	--arg     name            "$MY_NAME" \
