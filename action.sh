@@ -369,7 +369,11 @@ if [[ "$MY_HETZNER_SERVER_STATUS" != "running" ]]; then
 	exit_with_failure "Failed to start Hetzner Cloud Server! Please check manually."
 fi
 
-# TODO: if ssh key is provided, get it with hetzner api, ssh to the server and get status of runner
+# TODO: since forgejo does not support getting status of runners through its api, here's a way of knowing if the runner is ready:
+# 1. create a throwaway ssh keypair, upload it to hetzner and use it during server creation.
+# 2. when server is ready, use that key to run `ssh root@ip_of_server "systemctl is-active forgejo-runner" > result`
+# 3. result must be "active", else loop
+# 4. at the end, whatever happens, delete the ssh key on hetzner to not pollute accoun.t
 
 echo
 echo "The Hetzner Cloud Server and its associated Forgejo Actions Runner are ready for use." 
