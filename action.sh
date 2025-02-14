@@ -196,6 +196,22 @@ if [[ "$MY_RUNNER_VERSION" != "latest" && "$MY_RUNNER_VERSION" != "skip" && ! "$
 	exit_with_failure "'$MY_RUNNER_VERSION' is not a valid Forgejo Actions Runner version! Enter 'latest', 'skip' or the version without 'v'."
 fi
 
+# Set maximal wait time (retries * 10 sec) for Forgejo Actions Runner registration (default: 30 [5 min])
+# If MY_RUNNER_WAIT is set, use its value; otherwise, use "30".
+MY_RUNNER_WAIT=${INPUT_RUNNER_WAIT:-"60"}
+# Check if MY_RUNNER_WAIT is an integer
+if [[ ! "$MY_RUNNER_WAIT" =~ ^[0-9]+$ ]]; then
+	exit_with_failure "The maximum wait time (reties) for Forgejo Action Runner registration must be an integer!"
+fi
+
+# Forgejo: Create and use ssh key to get Actions Runner registration status
+# If INPUT_FORGEJO_USE_SSH_FOR_RUNNER_WAIT is set, use its value; otherwise, use "false".
+MY_FORGEJO_USE_SSH_FOR_RUNNER_WAIT=${INPUT_FORGEJO_USE_SSH_FOR_RUNNER_WAIT:-"false"}
+if [[ "$MY_FORGEJO_USE_SSH_FOR_RUNNER_WAIT" != "true" && "$MY_FORGEJO_USE_SSH_FOR_RUNNER_WAIT" != "false" ]]; then
+	exit_with_failure "Use ssh key to get runner registration status 'true' or 'false'."
+fi
+
+
 # Set Hetzner Cloud Server ID
 MY_HETZNER_SERVER_ID=${INPUT_SERVER_ID}
 
@@ -233,6 +249,37 @@ fi
 #
 # CREATE
 #
+
+# Forgejo: If asked: generate ssh key, and upload to Hetzner
+if [[ "$MY_FORGEJO_USE_SSH_FOR_RUNNER_WAIT" == "true" ]]; then
+	MY_FORGEJO_RUNNER_WAIT_SSH_DIR="$(mktemp -d /tmp/forgejo_ssh_for_runner_wait.XXXX)"
+	MY_FORGEJO_RUNNER_WAIT_SSH_KEY="${MY_FORGEJO_RUNNER_WAIT_SSH_DIR}/id_ed25519"
+	MY_FORGEJO_RUNNER_WAIT_SSH_PUB="${MY_FORGEJO_RUNNER_WAIT_SSH_DIR}/id_ed25519.pub"
+
+	# ed25519 key without passphrase
+	ssh-keygen -f $MY_FORGEJO_RUNNER_WAIT_SSH_KEY -t ed25519 -N ""
+
+	echo "Uploading ssh key..."
+	if ! curl \
+		-X POST \
+		--fail-with-body \
+		-o "ssh_keys.json" \
+		-H "Content-Type: application/json" \
+		-H "Authorization: Bearer ${MY_HETZNER_TOKEN}" \
+		--data "$(jq -n --arg name "$MY_NAME" --arg public_key "$(cat "${MY_FORGEJO_RUNNER_WAIT_SSH_PUB}")" '{"name": $name, "public_key": $public_key}')" \
+		"https://api.hetzner.cloud/v1/ssh_keys"; then
+			cat "ssh_keys.json"
+			exit_with_failure "Failed to upload ssh key in Hetzner Cloud!"
+	fi
+
+	# Get the Hetzner Server ID from the JSON response (assuming valid JSON)
+	MY_FORGEJO_RUNNER_WAIT_SSH_HETZNER_ID=$(jq -er '.ssh_key.id' < "ssh_keys.json")
+
+	# Check if MY_FORGEJO_RUNNER_WAIT_SSH_HETZNER_ID is an integer
+	if [[ ! "$MY_FORGEJO_RUNNER_WAIT_SSH_HETZNER_ID" =~ ^[0-9]+$ ]]; then
+		exit_with_failure "Failed to get ID of the SSH key uploaded in Hetzner Cloud!"
+	fi
+fi
 
 # Encode the contents of the "install.sh" and runner script into base64
 # BSD
@@ -300,6 +347,12 @@ if [[ "$MY_SSH_KEY" != "null" ]]; then
 	jq ".ssh_keys += [$MY_SSH_KEY]" < create-server-ssh.json > create-server.json && \
 	echo "SSH key added to create-server.json."
 fi
+# Forgejo: Add SSH key created to the create-server.json file if asked
+if [[ "$MY_FORGEJO_USE_SSH_FOR_RUNNER_WAIT" == "true" ]]; then
+	cp create-server.json create-server-ssh.json && \
+	jq ".ssh_keys += [$MY_FORGEJO_RUNNER_WAIT_SSH_HETZNER_ID]" < create-server-ssh.json > create-server.json && \
+	echo "SSH key for getting status of runner registration added to create-server.json."
+fi
 # Add network configuration to the create-server.json file if MY_NETWORK is not "null".
 if [[ "$MY_NETWORK" != "null" ]]; then
 	cp create-server.json create-server-network.json && \
@@ -352,8 +405,6 @@ while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
 		"https://api.hetzner.cloud/v1/servers/$MY_HETZNER_SERVER_ID" \
 		|| exit_with_failure "Failed to get status of the Hetzner Cloud Server!"
 
-	cat servers.json
-
 	MY_HETZNER_SERVER_STATUS=$(jq -er '.server.status' < "servers.json")
 
 	# Check if server is running
@@ -369,6 +420,56 @@ while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
 done
 if [[ "$MY_HETZNER_SERVER_STATUS" != "running" ]]; then
 	exit_with_failure "Failed to start Hetzner Cloud Server! Please check manually."
+fi
+
+# Special for Forgejo, since we cannot use its api to get registration status
+if [[ "$MY_FORGEJO_USE_SSH_FOR_RUNNER_WAIT" == "true" ]]; then
+	# Wait for Forgejo Actions Runner registration
+	MAX_RETRIES=$MY_RUNNER_WAIT
+	RETRY_COUNT=0
+	echo "Wait for Forgejo Actions Runner registration..."
+	while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
+
+		# Extract IPv4 and IPv6 addresses
+		MY_FORGEJO_USE_SSH_IPV4=$(jq -r '.server.public_net.ipv4.ip' "servers.json")
+		MY_FORGEJO_USE_SSH_IPV6=$(jq -r '.server.public_net.ipv6.ip' "servers.json")
+
+		# Determine which IP to use
+		if [ "$MY_FORGEJO_USE_SSH_IPV4" != "null" ]; then
+			MY_FORGEJO_USE_SSH_IP=$MY_FORGEJO_USE_SSH_IPV4
+		else
+			# Remove CIDR on ipv6
+			MY_FORGEJO_USE_SSH_IP="[${MY_FORGEJO_USE_SSH_IPV6%/*}]"
+		fi
+
+		# Get status of runner via ssh
+		MY_FORGEJO_RUNNER_REGISTRATION_STATUS=$(ssh root@"$MY_FORGEJO_USE_SSH_IP" "systemctl is-active forgejo-runner" -i "$MY_FORGEJO_RUNNER_WAIT_SSH_KEY")
+		if [[ "$MY_FORGEJO_RUNNER_REGISTRATION_STATUS" == "active" ]]; then
+			echo "Forgejo Actions Runner registered."
+			break
+		fi
+
+		RETRY_COUNT=$((RETRY_COUNT + 1)) # Increment retry counter
+
+		echo "Forgejo Actions Runner is not yet registered. Wait $WAIT_SEC seconds... (Attempt $RETRY_COUNT/$MAX_RETRIES)"
+		sleep "$WAIT_SEC"
+	done
+
+	# Delete ssh key, since we do not need it anymore
+	echo "Delete ssh key..."
+	rm $MY_FORGEJO_RUNNER_WAIT_SSH_KEY
+	curl \
+		-X DELETE \
+		--fail-with-body \
+		-H "Content-Type: application/json" \
+		-H "Authorization: Bearer ${MY_HETZNER_TOKEN}" \
+		"https://api.hetzner.cloud/v1/ssh_keys/$MY_FORGEJO_RUNNER_WAIT_SSH_HETZNER_ID" \
+		|| exit_with_failure "Error deleting ssh key!"
+	echo "SSH key deleted successfully from Hetzner Cloud Server."
+
+	if [[ "$MY_FORGEJO_RUNNER_REGISTRATION_STATUS" != "active" ]]; then
+		exit_with_failure "Forgejo Actions Runner is not registered. Please check installation manually."
+	fi
 fi
 
 # TODO: since forgejo does not support getting status of runners through its api, here's a way of knowing if the runner is ready:

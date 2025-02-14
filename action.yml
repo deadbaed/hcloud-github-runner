@@ -77,6 +77,11 @@ inputs:
       Wait up to 'runner_wait' retries (10 sec each) for runner registration (default: 10 minutes).
     required: false
     default: '60'
+  forgejo_use_ssh_for_runner_wait:
+    description: >-
+      Create and use ssh key to connect to server to know if runner registration is complete. Will be deleted afterwards.
+    required: false
+    default: 'false'
   server_id:
     description: >-
       ID (integer) of Hetzner Cloud Server to delete.
@@ -137,6 +142,7 @@ runs:
         INPUT_RUNNER_DIR: ${{ inputs.runner_dir }}
         INPUT_RUNNER_VERSION: ${{ inputs.runner_version }}
         INPUT_RUNNER_WAIT: ${{ inputs.runner_wait }}
+        INPUT_FORGEJO_USE_SSH_FOR_RUNNER_WAIT: ${{ inputs.forgejo_use_ssh_for_runner_wait }}
         INPUT_SERVER_ID: ${{ inputs.server_id }}
         INPUT_SERVER_TYPE: ${{ inputs.server_type }}
         INPUT_SERVER_WAIT: ${{ inputs.server_wait }}
