@@ -410,7 +410,7 @@ echo "server_id=$MY_HETZNER_SERVER_ID" >> "$GITHUB_OUTPUT"
 
 # Wait for server
 MAX_RETRIES=$MY_SERVER_WAIT
-WAIT_SEC=100
+WAIT_SEC=30
 RETRY_COUNT=0
 echo "Wait for server..."
 while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
