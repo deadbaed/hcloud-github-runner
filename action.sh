@@ -374,6 +374,7 @@ fi
 # https://docs.hetzner.cloud/#servers-create-a-server
 echo "Create server..."
 if ! curl \
+	-v \
 	-X POST \
 	--fail-with-body \
 	-o "servers.json" \
