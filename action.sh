@@ -352,6 +352,8 @@ while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
 		"https://api.hetzner.cloud/v1/servers/$MY_HETZNER_SERVER_ID" \
 		|| exit_with_failure "Failed to get status of the Hetzner Cloud Server!"
 
+	cat servers.json
+
 	MY_HETZNER_SERVER_STATUS=$(jq -er '.server.status' < "servers.json")
 
 	# Check if server is running
@@ -371,7 +373,7 @@ fi
 
 # TODO: since forgejo does not support getting status of runners through its api, here's a way of knowing if the runner is ready:
 # 1. create a throwaway ssh keypair, upload it to hetzner and use it during server creation.
-# 2. when server is ready, use that key to run `ssh root@ip_of_server "systemctl is-active forgejo-runner" > result`
+# 2. when server is ready, (watch out for ipv4/ipv6) use that key to run `ssh root@ip_of_server "systemctl is-active forgejo-runner" > result`
 # 3. result must be "active", else loop
 # 4. at the end, whatever happens, delete the ssh key on hetzner to not pollute accoun.t
 
