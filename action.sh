@@ -190,6 +190,7 @@ fi
 
 # Set default GitHub Actions Runner installation directory (default: /actions-runner)
 # If INPUT_RUNNER_DIR is set, its value is used. Otherwise, the default value "/actions-runner" is used.
+# TODO: tmp folder for installers and scripts
 MY_RUNNER_DIR=${INPUT_RUNNER_DIR:-"/actions-runner"}
 # Check allowed characters
 if [[ ! "$MY_RUNNER_DIR" =~ ^/([^/]+/)*[^/]+$ ]]; then
@@ -409,7 +410,7 @@ echo "server_id=$MY_HETZNER_SERVER_ID" >> "$GITHUB_OUTPUT"
 
 # Wait for server
 MAX_RETRIES=$MY_SERVER_WAIT
-WAIT_SEC=10
+WAIT_SEC=100
 RETRY_COUNT=0
 echo "Wait for server..."
 while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
