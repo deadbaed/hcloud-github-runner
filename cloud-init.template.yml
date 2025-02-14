@@ -10,9 +10,7 @@ package_upgrade: false
 runcmd:
   - bash $MY_RUNNER_DIR/pre_runner_script.sh
   - bash $MY_RUNNER_DIR/install.sh -v "$MY_RUNNER_VERSION" -d "$MY_RUNNER_DIR"
-  - forgejo-runner generate-config > config.yml
-  - forgejo-runner daemon # TODO: use systemd service
-  - # TODO: start runner / reboot
+  - echo "Started Forgejo runner"
 write_files:
   - path: $MY_RUNNER_DIR/pre_runner_script.sh
     encoding: b64

@@ -117,6 +117,9 @@ gpg --verify forgejo-runner.asc forgejo-runner && \
 cp forgejo-runner /usr/local/bin/forgejo-runner && \
 chmod +x /usr/local/bin/forgejo-runner
 
-# Register runner
+# Register and start runner
 /usr/local/bin/forgejo-runner register --no-interactive --instance "${GITHUB_SERVER_URL}" --token "${MY_FORGEJO_RUNNER_REGISTRATION_TOKEN}" --name "${MY_NAME}" --labels "${MY_NAME},self-hosted:host://-self-hosted,hetzner" 
+/usr/local/bin/forgejo-runner generate-config > /root/forgejo-runner-config.yml
+/usr/local/bin/forgejo-runner daemon -c /root/forgejo-runner-config.yml
 
+# TODO: use systemd service?
