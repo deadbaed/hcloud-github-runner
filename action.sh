@@ -275,18 +275,16 @@ fi
 # CREATE
 #
 
-# Create GitHub Actions registration token for registering a self-hosted runner to a repository
+# Get current Forgejo Actions registration token for registering a self-hosted runner to a repository
 # https://docs.github.com/en/rest/actions/self-hosted-runners#create-a-registration-token-for-a-repository
-echo "Create GitHub Actions Runner registration token..."
+echo "Getting current Forgejo Actions Runner registration token..."
 curl -L \
-	-X "POST" \
+	-X "GET" \
 	--fail-with-body \
 	-o "registration-token.json" \
-	-H "Accept: application/vnd.github+json" \
 	-H "Authorization: Bearer ${MY_GITHUB_TOKEN}" \
-	-H "X-GitHub-Api-Version: 2022-11-28" \
-	"https://api.github.com/repos/${MY_GITHUB_REPOSITORY}/actions/runners/registration-token" \
-	|| exit_with_failure "Failed to retrieve GitHub Actions Runner registration token!"
+	"${GITHUB_SERVER_URL}/api/v1/repos/${MY_GITHUB_REPOSITORY}/runners/registration-token" \
+	|| exit_with_failure "Failed to retrieve Forgejo Actions Runner registration token!"
 
 # Read the GitHub Runner registration token from a file (assuming valid JSON)
 MY_GITHUB_RUNNER_REGISTRATION_TOKEN=$(jq -er '.token' < "registration-token.json")
