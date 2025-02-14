@@ -424,9 +424,6 @@ fi
 
 # Special for Forgejo, since we cannot use its api to get registration status
 if [[ "$MY_FORGEJO_USE_SSH_FOR_RUNNER_WAIT" == "true" ]]; then
-
-	set -x
-
 	# Wait for Forgejo Actions Runner registration
 	MAX_RETRIES=$MY_RUNNER_WAIT
 	RETRY_COUNT=0
@@ -441,8 +438,8 @@ if [[ "$MY_FORGEJO_USE_SSH_FOR_RUNNER_WAIT" == "true" ]]; then
 		if [ "$MY_FORGEJO_USE_SSH_IPV4" != "null" ]; then
 			MY_FORGEJO_USE_SSH_IP=$MY_FORGEJO_USE_SSH_IPV4
 		else
-			# Remove CIDR on ipv6
-			MY_FORGEJO_USE_SSH_IP="[${MY_FORGEJO_USE_SSH_IPV6%/*}]"
+			# Have a complete ipv6
+			MY_FORGEJO_USE_SSH_IP="[${MY_FORGEJO_USE_SSH_IPV6%::*}::1]"
 		fi
 
 		# Get status of runner via ssh
