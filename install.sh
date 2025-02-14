@@ -113,7 +113,7 @@ wget -O forgejo-runner "https://data.forgejo.org/forgejo/runner/releases/downloa
 wget -O forgejo-runner.asc "https://data.forgejo.org/forgejo/runner/releases/download/v${MY_RUNNER_VERSION}/forgejo-runner-${MY_RUNNER_VERSION}-linux-${MY_ARCH}.asc" && \
 gpg --keyserver keys.openpgp.org --recv EB114F5E6C0DC2BCDD183550A4B61A2DC5923710 && \
 gpg --verify forgejo-runner.asc forgejo-runner && \
-# Copy binary to path
+# Copy binary
 cp forgejo-runner /usr/local/bin/forgejo-runner && \
 chmod +x /usr/local/bin/forgejo-runner
 

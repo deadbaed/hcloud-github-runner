@@ -179,9 +179,9 @@ if [[ "$MY_SSH_KEY" != "null" && ! "$MY_SSH_KEY" =~ ^[0-9]+$ ]]; then
 	exit_with_failure "The SSH key ID must be 'null' or an integer!"
 fi
 
-# Set default Forgejo Actions Runner installation directory (default: /tmp/forgejo-runner.XXXX)
-# If INPUT_RUNNER_DIR is set, its value is used. Otherwise, the default value /tmp/forgejo-runner.XXXX is used.
-MY_RUNNER_DIR=${INPUT_RUNNER_DIR:-"$(mktemp -d /run/forgejo-runner.XXXX)"}
+# Set default Forgejo Actions Runner installation directory (default: /run/forgejo-runner)
+# If INPUT_RUNNER_DIR is set, its value is used. Otherwise, the default value /run/forgejo-runner is used.
+MY_RUNNER_DIR=${INPUT_RUNNER_DIR:-"/run/forgejo-runner"}
 # Check allowed characters
 if [[ ! "$MY_RUNNER_DIR" =~ ^/([^/]+/)*[^/]+$ ]]; then
 	exit_with_failure "'$MY_RUNNER_DIR' is not a valid absolute directory path without a trailing slash!"
