@@ -443,7 +443,7 @@ if [[ "$MY_FORGEJO_USE_SSH_FOR_RUNNER_WAIT" == "true" ]]; then
 		fi
 
 		# Get status of runner via ssh
-		MY_FORGEJO_RUNNER_REGISTRATION_STATUS=$(ssh root@"$MY_FORGEJO_USE_SSH_IP" "systemctl is-active forgejo-runner" -i "$MY_FORGEJO_RUNNER_WAIT_SSH_KEY")
+		MY_FORGEJO_RUNNER_REGISTRATION_STATUS=$(ssh -i "$MY_FORGEJO_RUNNER_WAIT_SSH_KEY" -o "StrictHostKeyChecking no" root@"$MY_FORGEJO_USE_SSH_IP" "systemctl is-active forgejo-runner")
 		if [[ "$MY_FORGEJO_RUNNER_REGISTRATION_STATUS" == "active" ]]; then
 			echo "Forgejo Actions Runner registered."
 			break
