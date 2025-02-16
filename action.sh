@@ -410,6 +410,7 @@ while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
 	# Check if server is running
 	if [[ "$MY_HETZNER_SERVER_STATUS" == "running" ]]; then
 		echo "Server is running."
+		echo "Now installing pre_runner_script if specified, and registering runner..."
 		break
 	fi
 
