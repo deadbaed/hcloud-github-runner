@@ -31,8 +31,7 @@ runcmd:
     [Install]
     WantedBy=multi-user.target
     EOF
-  - systemctl enable forgejo-runner.service
-  - reboot
+  - systemctl start forgejo-runner.service
 write_files:
   - path: $MY_RUNNER_DIR/pre_runner_script.sh
     encoding: b64
