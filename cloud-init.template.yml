@@ -5,6 +5,9 @@ packages:
   - jq
   - gpg
   - wget
+  - node
+  - npm
+  - yarn
 package_update: true
 package_upgrade: false
 runcmd:
