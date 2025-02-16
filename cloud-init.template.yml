@@ -12,8 +12,6 @@ runcmd:
   - bash $MY_RUNNER_DIR/install.sh -v "$MY_RUNNER_VERSION" -d "$MY_RUNNER_DIR"
   - cd /root
   - /usr/local/bin/forgejo-runner register --no-interactive --instance "$GITHUB_SERVER_URL" --token "$MY_FORGEJO_RUNNER_REGISTRATION_TOKEN" --name "$MY_NAME" --labels "$MY_NAME:host,forgejo-runner-hetzner:host" 
-  - /usr/local/bin/forgejo-runner generate-config > config.yml
-  - sed -i "s/^  level: info/  level: debug/; s/^  job_level: info/  job_level: debug/" config.yml
   - |
     cat > /etc/systemd/system/forgejo-runner.service <<EOF
     [Unit]

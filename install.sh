@@ -117,4 +117,6 @@ gpg --verify forgejo-runner.asc forgejo-runner && \
 cp forgejo-runner /usr/local/bin/forgejo-runner && \
 chmod +x /usr/local/bin/forgejo-runner
 
-# Ready to be configured
+# Generate config file
+/usr/local/bin/forgejo-runner generate-config > /root/config.yml
+sed -i "s/^  level: info/  level: debug/; s/^  job_level: info/  job_level: debug/" /root/config.yml
