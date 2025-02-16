@@ -7,7 +7,6 @@ packages:
   - wget
   - nodejs
   - npm
-  - yarn
 package_update: true
 package_upgrade: false
 runcmd:
