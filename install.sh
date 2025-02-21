@@ -49,7 +49,7 @@ fi
 MY_COMMANDS=(
 	curl
 	jq
-	gpg
+	sha256sum
 	cut
 	wget
 )
@@ -104,17 +104,20 @@ else
 	MY_RUNNER_VERSION="$MY_INPUT_RUNNER_VERSION"
 fi
 
+BASE_DOWNLOAD_URL="https://data.forgejo.org/forgejo/runner/releases/download/v${MY_RUNNER_VERSION}"
+RUNNER_BINARY="forgejo-runner-${MY_RUNNER_VERSION}-linux-${MY_ARCH}"
+RUNNER_CHECKSUM="${RUNNER_BINARY}.sha256"
+
 # Create directory (if it doesn't exist) and change to the installation directory
 mkdir -p "$MY_RUNNER_DIR" && \
 cd "$MY_RUNNER_DIR" && \
 # Download runner
-wget -O forgejo-runner "https://data.forgejo.org/forgejo/runner/releases/download/v${MY_RUNNER_VERSION}/forgejo-runner-${MY_RUNNER_VERSION}-linux-${MY_ARCH}" && \
-# Download and verify signature
-wget -O forgejo-runner.asc "https://data.forgejo.org/forgejo/runner/releases/download/v${MY_RUNNER_VERSION}/forgejo-runner-${MY_RUNNER_VERSION}-linux-${MY_ARCH}.asc" && \
-gpg --keyserver keys.openpgp.org --recv EB114F5E6C0DC2BCDD183550A4B61A2DC5923710 && \
-gpg --verify forgejo-runner.asc forgejo-runner && \
+wget "${BASE_DOWNLOAD_URL}/${RUNNER_BINARY}" && \
+# Download and verify checksum
+wget "${BASE_DOWNLOAD_URL}/${RUNNER_CHECKSUM}" && \
+sha256sum -c "$RUNNER_CHECKSUM" && \
 # Copy binary
-cp forgejo-runner /usr/local/bin/forgejo-runner && \
+cp "$RUNNER_BINARY" /usr/local/bin/forgejo-runner && \
 chmod +x /usr/local/bin/forgejo-runner
 
 # Generate config file

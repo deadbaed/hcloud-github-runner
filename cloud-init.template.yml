@@ -3,7 +3,6 @@ packages:
   - curl
   - git
   - jq
-  - gpg
   - wget
   - nodejs
   - npm
